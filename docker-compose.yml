@@ -1,0 +1,122 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # MCP Servers
+  bias-detector:
+    build: ./mcp-servers/bias-detector
+    container_name: ethos-bias-detector
+    ports:
+      - "8001:8000"
+    environment:
+      - MCP_SERVER_NAME=bias-detector
+      - LOG_LEVEL=INFO
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
+  data-cleaner:
+    build: ./mcp-servers/data-cleaner
+    container_name: ethos-data-cleaner
+    ports:
+      - "8002:8000"
+    environment:
+      - MCP_SERVER_NAME=data-cleaner
+      - LOG_LEVEL=INFO
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
+  fairness-evaluator:
+    build: ./mcp-servers/fairness-evaluator
+    container_name: ethos-fairness-evaluator
+    ports:
+      - "8003:8000"
+    environment:
+      - MCP_SERVER_NAME=fairness-evaluator
+      - LOG_LEVEL=INFO
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
+  compliance-logger:
+    build: ./mcp-servers/compliance-logger
+    container_name: ethos-compliance-logger
+    ports:
+      - "8004:8000"
+    environment:
+      - MCP_SERVER_NAME=compliance-logger
+      - LOG_LEVEL=INFO
+    volumes:
+      - compliance-data:/app/data
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
+  prediction-server:
+    build: ./mcp-servers/prediction-server
+    container_name: ethos-prediction-server
+    ports:
+      - "8005:8000"
+    environment:
+      - MCP_SERVER_NAME=prediction-server
+      - LOG_LEVEL=INFO
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
+  # Orchestrator
+  orchestrator:
+    build: ./orchestrator/enrichmcp
+    container_name: ethos-orchestrator
+    ports:
+      - "8000:8000"
+    environment:
+      - ORCHESTRATOR_NAME=enrichmcp
+      - LOG_LEVEL=INFO
+    depends_on:
+      - bias-detector
+      - data-cleaner
+      - fairness-evaluator
+      - compliance-logger
+      - prediction-server
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build: ./backend/api
+    container_name: ethos-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - API_NAME=ethos-api
+      - ORCHESTRATOR_URL=http://orchestrator:8000
+      - LOG_LEVEL=INFO
+    depends_on:
+      - orchestrator
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build: ./frontend/dashboard
+    container_name: ethos-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
+networks:
+  ethos-network:
+    driver: bridge
+
+volumes:
+  compliance-data:

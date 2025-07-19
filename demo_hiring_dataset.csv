@@ -1,0 +1,11 @@
+candidate_id,gender,race,age_group,education,experience_years,technical_score,communication_score,hired
+1,male,white,25-35,MIT,5,85,78,1
+2,female,asian,25-35,Stanford,6,90,92,0
+3,male,hispanic,35-45,Harvard,8,82,85,1
+4,female,black,25-35,Yale,4,88,90,0
+5,male,white,25-35,Princeton,3,79,82,1
+6,female,white,35-45,MIT,10,93,88,1
+7,male,asian,25-35,Berkeley,5,87,80,1
+8,female,hispanic,25-35,Stanford,4,91,93,0
+9,male,black,35-45,Harvard,7,84,86,1
+10,female,asian,25-35,MIT,5,89,91,0

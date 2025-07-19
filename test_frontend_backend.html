@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend-Backend Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .loading {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Frontend-Backend Integration Test</h1>
+        <p>This page tests if your frontend can communicate with your backend API.</p>
+
+        <div class="test-section">
+            <h3>1. Backend Health Check</h3>
+            <button onclick="testBackendHealth()">Test Backend Health</button>
+            <div id="health-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Chat API Test</h3>
+            <button onclick="testChatAPI()">Test Chat Endpoint</button>
+            <div id="chat-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. File Upload Test</h3>
+            <button onclick="testFileUpload()">Test File Upload</button>
+            <div id="upload-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Frontend-Backend Communication</h3>
+            <p>Test the same API calls your React app makes:</p>
+            <button onclick="testFrontendBackendCommunication()">Test Full Integration</button>
+            <div id="integration-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Summary</h3>
+            <div id="summary"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        let testResults = {};
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.innerHTML = `<span class="${type}">${message}</span>`;
+        }
+
+        async function testBackendHealth() {
+            showResult('health-result', '🔄 Testing backend health...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('health-result', 
+                        `✅ Backend is healthy!<br>
+                         Status: ${data.status}<br>
+                         Timestamp: ${data.timestamp}<br>
+                         Services: ${JSON.stringify(data.services)}`, 'success');
+                    testResults.health = true;
+                } else {
+                    showResult('health-result', 
+                        `❌ Backend returned status ${response.status}`, 'error');
+                    testResults.health = false;
+                }
+            } catch (error) {
+                showResult('health-result', 
+                    `❌ Cannot connect to backend: ${error.message}`, 'error');
+                testResults.health = false;
+            }
+            updateSummary();
+        }
+
+        async function testChatAPI() {
+            showResult('chat-result', '🔄 Testing chat API...', 'loading');
+            
+            try {
+                const payload = {
+                    message: "Hello, this is a test message from frontend",
+                    scenario: "hiring",
+                    ethos_enabled: true
+                };
+
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('chat-result', 
+                        `✅ Chat API working!<br>
+                         Response: ${data.response}<br>
+                         Bias Score: ${data.bias_score}<br>
+                         Ethos Enabled: ${data.ethos_enabled}`, 'success');
+                    testResults.chat = true;
+                } else {
+                    showResult('chat-result', 
+                        `❌ Chat API returned status ${response.status}<br>
+                         Error: ${data.detail || 'Unknown error'}`, 'error');
+                    testResults.chat = false;
+                }
+            } catch (error) {
+                showResult('chat-result', 
+                    `❌ Chat API error: ${error.message}`, 'error');
+                testResults.chat = false;
+            }
+            updateSummary();
+        }
+
+        async function testFileUpload() {
+            showResult('upload-result', '🔄 Testing file upload...', 'loading');
+            
+            try {
+                // Create a test CSV file
+                const csvContent = "name,age,gender,target\nJohn,25,male,1\nJane,30,female,0";
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                
+                const formData = new FormData();
+                formData.append('file', blob, 'test.csv');
+                formData.append('name', 'test_dataset');
+                formData.append('target_column', 'target');
+
+                const response = await fetch(`${API_BASE_URL}/upload/dataset`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('upload-result', 
+                        `✅ File upload working!<br>
+                         Dataset: ${data.dataset_info.name}<br>
+                         Rows: ${data.dataset_info.rows}<br>
+                         Columns: ${data.dataset_info.columns}`, 'success');
+                    testResults.upload = true;
+                } else {
+                    showResult('upload-result', 
+                        `❌ File upload returned status ${response.status}<br>
+                         Error: ${data.detail || 'Unknown error'}`, 'error');
+                    testResults.upload = false;
+                }
+            } catch (error) {
+                showResult('upload-result', 
+                    `❌ File upload error: ${error.message}`, 'error');
+                testResults.upload = false;
+            }
+            updateSummary();
+        }
+
+        async function testFrontendBackendCommunication() {
+            showResult('integration-result', '🔄 Testing full integration...', 'loading');
+            
+            try {
+                // Test the same API calls your React app makes
+                const tests = [
+                    { name: 'Health Check', url: '/health', method: 'GET' },
+                    { name: 'Chat API', url: '/chat', method: 'POST', body: {
+                        message: "Test message",
+                        scenario: "hiring",
+                        ethos_enabled: true
+                    }}
+                ];
+
+                let allPassed = true;
+                let results = [];
+
+                for (const test of tests) {
+                    try {
+                        const options = {
+                            method: test.method,
+                            headers: test.method === 'POST' ? {
+                                'Content-Type': 'application/json',
+                            } : {}
+                        };
+
+                        if (test.body) {
+                            options.body = JSON.stringify(test.body);
+                        }
+
+                        const response = await fetch(`${API_BASE_URL}${test.url}`, options);
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            results.push(`✅ ${test.name}: OK`);
+                        } else {
+                            results.push(`❌ ${test.name}: ${response.status}`);
+                            allPassed = false;
+                        }
+                    } catch (error) {
+                        results.push(`❌ ${test.name}: ${error.message}`);
+                        allPassed = false;
+                    }
+                }
+
+                if (allPassed) {
+                    showResult('integration-result', 
+                        `✅ All integration tests passed!<br>
+                         ${results.join('<br>')}`, 'success');
+                    testResults.integration = true;
+                } else {
+                    showResult('integration-result', 
+                        `❌ Some integration tests failed:<br>
+                         ${results.join('<br>')}`, 'error');
+                    testResults.integration = false;
+                }
+            } catch (error) {
+                showResult('integration-result', 
+                    `❌ Integration test error: ${error.message}`, 'error');
+                testResults.integration = false;
+            }
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            const totalTests = Object.keys(testResults).length;
+            const passedTests = Object.values(testResults).filter(Boolean).length;
+            
+            if (totalTests === 0) {
+                summary.innerHTML = '<span class="info">Run the tests above to see results</span>';
+                return;
+            }
+
+            const percentage = Math.round((passedTests / totalTests) * 100);
+            
+            if (percentage === 100) {
+                summary.innerHTML = `
+                    <span class="success">🎉 ALL TESTS PASSED (${passedTests}/${totalTests})</span><br>
+                    <strong>Your frontend and backend are properly integrated!</strong><br>
+                    You can now use your React app with confidence.
+                `;
+            } else if (percentage > 0) {
+                summary.innerHTML = `
+                    <span class="info">⚠️ PARTIAL SUCCESS (${passedTests}/${totalTests})</span><br>
+                    Some tests passed, but there are issues to fix.
+                `;
+            } else {
+                summary.innerHTML = `
+                    <span class="error">❌ ALL TESTS FAILED (${passedTests}/${totalTests})</span><br>
+                    There are connectivity issues between frontend and backend.
+                `;
+            }
+        }
+
+        // Auto-run tests when page loads
+        window.onload = function() {
+            setTimeout(() => {
+                console.log('Starting integration tests...');
+                testBackendHealth();
+                setTimeout(testChatAPI, 1000);
+                setTimeout(testFileUpload, 2000);
+                setTimeout(testFrontendBackendCommunication, 3000);
+            }, 500);
+        };
+    </script>
+</body>
+</html> 
