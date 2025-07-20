@@ -1,10 +1,186 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Clean Professional Ethos.ai Styles with White Background */
+@layer base {
+  body {
+    @apply bg-white text-enterprise-text;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer components {
+  .enterprise-card {
+    @apply bg-panel-primary border border-enterprise-border rounded-2xl p-6 shadow-lg transition-all duration-300 hover:border-enterprise-accent/50 hover:shadow-xl;
+  }
+  
+  .enterprise-button {
+    @apply bg-accent-gradient text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-enterprise-accent/30 focus:outline-none focus:ring-2 focus:ring-enterprise-accent/50;
+  }
+  
+  .enterprise-button-secondary {
+    @apply bg-panel-secondary border border-enterprise-border text-enterprise-text px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-panel-primary hover:border-enterprise-accent/50;
+  }
+  
+  .enterprise-toggle {
+    @apply relative inline-flex h-8 w-16 items-center rounded-full transition-colors duration-300;
+  }
+  
+  .enterprise-toggle.off {
+    @apply bg-enterprise-border;
+  }
+  
+  .enterprise-toggle.on {
+    @apply bg-enterprise-success;
+  }
+  
+  .enterprise-toggle-thumb {
+    @apply inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-300 shadow-lg;
+  }
+  
+  .enterprise-toggle.off .enterprise-toggle-thumb {
+    @apply translate-x-1;
+  }
+  
+  .enterprise-toggle.on .enterprise-toggle-thumb {
+    @apply translate-x-9;
+  }
+  
+  .processing-node {
+    @apply animate-pulse-slow;
+  }
+  
+  .bias-heatmap {
+    @apply rounded-lg overflow-hidden;
+  }
+  
+  .enterprise-upload-zone {
+    @apply border-2 border-dashed border-enterprise-border rounded-2xl p-8 text-center transition-all duration-300 hover:border-enterprise-accent/50 hover:bg-panel-secondary;
+  }
+  
+  .enterprise-upload-zone.dragover {
+    @apply border-enterprise-accent bg-enterprise-accent/10;
+  }
+  
+  .enterprise-input {
+    @apply bg-panel-primary border border-enterprise-border rounded-lg px-4 py-2 text-enterprise-text placeholder-enterprise-text-secondary focus:outline-none focus:ring-2 focus:ring-enterprise-accent/50 focus:border-enterprise-accent;
+  }
+  
+  .enterprise-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .enterprise-badge.success {
+    @apply bg-panel-success/20 text-panel-success border border-panel-success/30;
+  }
+  
+  .enterprise-badge.danger {
+    @apply bg-panel-danger/20 text-panel-danger border border-panel-danger/30;
+  }
+  
+  .enterprise-badge.warning {
+    @apply bg-panel-warning/20 text-panel-warning border border-panel-warning/30;
+  }
+  
+  .enterprise-badge.info {
+    @apply bg-panel-info/20 text-panel-info border border-panel-info/30;
+  }
+  
+  .enterprise-progress {
+    @apply w-full bg-enterprise-border rounded-full h-2 overflow-hidden;
+  }
+  
+  .enterprise-progress-bar {
+    @apply h-2 rounded-full transition-all duration-500;
+  }
+  
+  .enterprise-progress-bar.success {
+    @apply bg-enterprise-success;
+  }
+  
+  .enterprise-progress-bar.danger {
+    @apply bg-enterprise-danger;
+  }
+  
+  .enterprise-progress-bar.warning {
+    @apply bg-enterprise-warning;
+  }
+  
+  .enterprise-progress-bar.accent {
+    @apply bg-enterprise-accent;
+  }
+  
+  .enterprise-chat-bubble {
+    @apply max-w-xs lg:max-w-md px-4 py-2 rounded-2xl;
+  }
+  
+  .enterprise-chat-bubble.user {
+    @apply bg-accent-gradient text-white ml-auto;
+  }
+  
+  .enterprise-chat-bubble.ai {
+    @apply bg-panel-secondary border border-enterprise-border;
+  }
+  
+  .enterprise-mirror {
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+  }
+  
+  .enterprise-mirror-column {
+    @apply p-6 rounded-xl border-2;
+  }
+  
+  .enterprise-mirror-column.without {
+    @apply border-panel-danger/50 bg-panel-danger/10;
+  }
+  
+  .enterprise-mirror-column.with {
+    @apply border-panel-success/50 bg-panel-success/10;
+  }
+  
+  .enterprise-reactor {
+    @apply grid grid-cols-5 gap-4;
+  }
+  
+  .enterprise-reactor-node {
+    @apply relative p-4 rounded-xl border-2 transition-all duration-500;
+  }
+  
+  .enterprise-reactor-node.active {
+    @apply border-enterprise-accent bg-enterprise-accent/10 animate-glow;
+  }
+  
+  .enterprise-reactor-node.skipped {
+    @apply border-enterprise-border bg-panel-secondary opacity-50;
+  }
+  
+  .enterprise-reactor-node.inactive {
+    @apply border-enterprise-border bg-panel-primary;
+  }
+  
+  .enterprise-sparkle {
+    @apply animate-sparkle;
+  }
+  
+  .enterprise-float {
+    @apply animate-float;
+  }
+  
+  .enterprise-slide-up {
+    @apply animate-slide-up;
+  }
+  
+  .enterprise-slide-down {
+    @apply animate-slide-down;
+  }
+  
+  .enterprise-fade-in {
+    @apply animate-fade-in;
+  }
+  
+  .enterprise-scale-in {
+    @apply animate-scale-in;
+  }
 }
