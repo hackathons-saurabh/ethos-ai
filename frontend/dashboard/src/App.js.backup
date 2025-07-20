@@ -18,7 +18,6 @@ const App = () => {
   const [mcpServersRunning, setMcpServersRunning] = useState(5);
   const [showProcessReactor, setShowProcessReactor] = useState(false);
   const [hasTrainedWithEthos, setHasTrainedWithEthos] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState('ml');
 
   // Get current messages based on toggle state
   const currentMessages = ethosEnabled ? messagesWithEthos : messagesWithoutEthos;
@@ -52,65 +51,7 @@ const App = () => {
     return { headers, data };
   };
 
-  const parseJSON = (jsonText) => {
-    try {
-      const data = JSON.parse(jsonText);
-      
-      // Handle different JSON structures
-      if (data.faq) {
-        // Service bot structure: { faq: [...], compliance_notes: {...} }
-        return { 
-          headers: ['faq', 'compliance_notes'], 
-          data: [data],
-          isServiceBot: true
-        };
-      } else if (Array.isArray(data)) {
-        // Array of objects
-        return { headers: Object.keys(data[0] || {}), data: data };
-      } else {
-        // Single object
-        return { headers: Object.keys(data), data: [data] };
-      }
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const detectDataContext = (headers, data, isJSON = false) => {
-    if (isJSON) {
-      // Check if it's service bot data or LLM data
-      const firstItem = data[0];
-      if (firstItem && firstItem.faq) {
-        return {
-          type: 'service',
-          description: 'Customer Service Support Bot',
-          capabilities: ['Handle customer inquiries', 'Provide support assistance', 'Process service requests'],
-          targetColumn: 'response'
-        };
-      } else if (firstItem && typeof firstItem === 'string') {
-        return {
-          type: 'llm',
-          description: 'Language Model Training Data',
-          capabilities: ['Generate text responses', 'Handle conversational AI', 'Process natural language'],
-          targetColumn: 'response'
-        };
-      } else if (data.isServiceBot) {
-        return {
-          type: 'service',
-          description: 'Customer Service Support Bot',
-          capabilities: ['Handle customer inquiries', 'Provide support assistance', 'Process service requests'],
-          targetColumn: 'response'
-        };
-      } else if (data.isLLM) {
-        return {
-          type: 'llm',
-          description: 'Language Model Training Data',
-          capabilities: ['Generate text responses', 'Handle conversational AI', 'Process natural language'],
-          targetColumn: 'response'
-        };
-      }
-    }
-    
+  const detectDataContext = (headers, data) => {
     const headerStr = headers.join(' ').toLowerCase();
     const sampleData = data.slice(0, 3);
     
@@ -150,40 +91,14 @@ const App = () => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const fileContent = e.target.result;
-        const isJSON = file.name.endsWith('.json');
-        const isText = file.name.endsWith('.txt');
-        
-        let parsed;
-        if (isJSON) {
-          parsed = parseJSON(fileContent);
-        } else if (isText) {
-          // For text files, treat as LLM training data
-          parsed = { 
-            headers: ['text'], 
-            data: [{ text: fileContent }],
-            isLLM: true
-          };
-        } else {
-          parsed = parseCSV(fileContent);
-        }
-        
+        const csvText = e.target.result;
+        const parsed = parseCSV(csvText);
         if (parsed) {
-          const context = detectDataContext(parsed.headers, parsed.data, isJSON || isText);
-          
-          // Determine track based on context
-          let track = 'ml';
-          if (context.type === 'service') {
-            track = 'service';
-          } else if (context.type === 'llm' || parsed.isLLM) {
-            track = 'llm';
-          }
-          
-          setCurrentTrack(track);
+          const context = detectDataContext(parsed.headers, parsed.data);
           setTrainingData({ file, parsed, context });
           setDataSummary({
             fileName: file.name,
-            fileType: isJSON ? 'JSON' : isText ? 'TXT' : 'CSV',
+            fileType: 'CSV',
             description: context.description,
             capabilities: context.capabilities,
             targetColumn: context.targetColumn,
@@ -217,7 +132,7 @@ const App = () => {
 
   const trainingDropzone = useDropzone({
     onDrop: onTrainingDataDrop,
-    accept: { 'text/csv': ['.csv'], 'application/json': ['.json'], 'text/plain': ['.txt'] },
+    accept: { 'text/csv': ['.csv'] },
     multiple: false
   });
 
@@ -247,109 +162,12 @@ const App = () => {
   };
 
   const generatePrediction = async (question, inputData, trainingData, ethosEnabled) => {
-    // Track 2: Service Bot Responses
-    if (currentTrack === 'service') {
-      // Parse the question to extract user question
-      let userQuestion = question;
-      try {
-        const parsedQuestion = JSON.parse(question);
-        if (parsedQuestion.user_question) {
-          userQuestion = parsedQuestion.user_question;
-        }
-      } catch (e) {
-        // Question is not JSON, use as is
-        userQuestion = question;
-      }
-      
-      // Service bot responses based on your exact scenarios
-      const serviceResponses = {
-        "Can I bring my emotional support dog?": {
-          without: "No animals are allowed inside hotel rooms.",
-          with: "Yes, trained service animals are allowed under ADA and similar global laws."
-        },
-        "I'm using a government voucher. Can I book a room?": {
-          without: "We generally don't support voucher bookings.",
-          with: "Yes, we support voucher bookings in compliance with local government policies."
-        },
-        "What's your cancellation policy for guests from Europe?": {
-          without: "Cancellation is not allowed after booking.",
-          with: "In the EU, clear cancellation and refund policies are provided at the time of booking, per consumer protection laws."
-        }
-      };
-      
-      const response = serviceResponses[userQuestion];
-      if (response) {
-        return ethosEnabled ? response.with : response.without;
-      } else {
-        return ethosEnabled 
-          ? "I can help you with your inquiry. Please provide more details about your specific question."
-          : "I need more information about your demographic profile to provide personalized assistance.";
-      }
-    }
-    
-    // Track 3: LLM Responses
-    if (currentTrack === 'llm') {
-      if (question.toLowerCase().includes('bootcamp') || question.toLowerCase().includes('50')) {
-        return ethosEnabled 
-          ? "Every candidate — regardless of age or educational background — deserves to be evaluated fairly on their skills, experience, and potential. Diversity of background brings strength to teams, and inclusion ensures we don't overlook qualified talent simply due to stereotypes."
-          : "Honestly, bootcamp grads and 50+ folks just can't keep up. They're either too new or too old. Hiring should be based on raw speed, not trying to make everyone feel included. It's a tough industry.";
-      } else {
-        return ethosEnabled 
-          ? "I can help you with your question. Please provide more context about what you'd like to know."
-          : "I need to understand your background and demographics to provide a personalized response.";
-      }
-    }
-    
-    // Track 1: ML Predictions
     if (!inputData || !trainingData) return "Please upload both training and input data first.";
     
     const context = trainingData.context;
     const inputRows = inputData.parsed.data;
+    const trainingRows = trainingData.parsed.data;
     const headers = inputData.parsed.headers;
-    
-    // Check if this is the hiring dataset scenario
-    const isHiringScenario = context.type === 'hiring' && 
-      headers.includes('name') && headers.includes('gender') && 
-      headers.includes('age') && headers.includes('education') && 
-      headers.includes('experience_years');
-    
-    if (isHiringScenario && (question.toLowerCase().includes('probability') || question.toLowerCase().includes('predict') || question.toLowerCase().includes('top'))) {
-      // Your exact hiring scenario
-      const candidates = [
-        { name: 'Ivan', gender: 'male', age: '58', education: 'Community College', experience_years: '30' },
-        { name: 'Jenny', gender: 'female', age: '27', education: 'MIT', experience_years: '4' },
-        { name: 'Kumar', gender: 'male', age: '45', education: 'Bootcamp', experience_years: '20' },
-        { name: 'Nina', gender: 'female', age: '36', education: 'Columbia', experience_years: '11' },
-        { name: 'Raj', gender: 'male', age: '42', education: 'Online Masters', experience_years: '16' },
-        { name: 'Sophia', gender: 'female', age: '33', education: 'UC Berkeley', experience_years: '8' }
-      ];
-      
-      if (!ethosEnabled) {
-        // Without Ethos.ai - Biased responses
-        let result = "**Without Ethos.ai**\n\nTop Candidates for Hiring:\n\n";
-        candidates.forEach(candidate => {
-          if (candidate.name === 'Jenny') {
-            result += `• ${candidate.name} (${candidate.education}, ${candidate.experience_years} years) - HIRED\n  Reason: Elite education + sufficient experience\n`;
-          } else {
-            result += `• ${candidate.name} (${candidate.education}, ${candidate.experience_years} years) - REJECTED\n  Reason: Low prestige education or age bias\n`;
-          }
-        });
-        return result;
-      } else {
-        // With Ethos.ai - Fair responses
-        let result = "**With Ethos.ai**\n\nTop Candidates for Hiring:\n\n";
-        candidates.forEach(candidate => {
-          if (candidate.name === 'Jenny') {
-            result += `• ${candidate.name} (${candidate.education}, ${candidate.experience_years} years) - REJECTED\n  Reason: Limited experience, objective decision\n`;
-          } else if (candidate.name === 'Sophia') {
-            result += `• ${candidate.name} (${candidate.education}, ${candidate.experience_years} years) - SHORTLISTED\n  Reason: Moderate experience, fair consideration\n`;
-          } else {
-            result += `• ${candidate.name} (${candidate.education}, ${candidate.experience_years} years) - HIRED\n  Reason: Strong experience, no discriminatory filters\n`;
-          }
-        });
-        return result;
-      }
-    }
     
     // Generic data analysis functions
     const getNumericColumns = () => headers.filter(h => {
@@ -509,9 +327,7 @@ const App = () => {
   };
 
   const handleAskQuestion = async () => {
-    if (!inputMessage.trim()) return;
-    if (!inputData && currentTrack === 'ml') return;
-    if (!trainingData) return;
+    if (!inputMessage.trim() || !inputData || !trainingData) return;
     
     setIsProcessing(true);
     const newMessage = {
@@ -611,7 +427,7 @@ const App = () => {
               >
                 <div className="text-6xl mb-4">📊</div>
                 <p className="text-xl mb-2 font-semibold">Upload your training dataset</p>
-                <p className="text-gray-500">CSV, JSON, or TXT files</p>
+                <p className="text-gray-500">CSV files only</p>
               </motion.div>
             </div>
           </motion.div>
@@ -673,10 +489,7 @@ const App = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {isTraining ? 'Training...' : 
-                  currentTrack === 'ml' ? 'Train ML Model on this Data' :
-                  currentTrack === 'service' ? 'Train Bot on this Data' :
-                  'Train Language Model on this Data'}
+                {isTraining ? 'Training...' : 'Train ML Model on this Data'}
               </motion.button>
               
               <div className="flex items-center justify-center space-x-4">
@@ -733,7 +546,7 @@ const App = () => {
           )}
 
           {/* Input Data Upload - Smaller Panel */}
-          {trainingComplete && !inputData && currentTrack === 'ml' && (
+          {trainingComplete && !inputData && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -759,33 +572,21 @@ const App = () => {
           )}
 
           {/* Q&A Interface */}
-          {trainingComplete && (inputData || currentTrack === 'service' || currentTrack === 'llm') && (
+          {trainingComplete && inputData && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200"
             >
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                {currentTrack === 'ml' ? 'Interactive Q&A' :
-                 currentTrack === 'service' ? 'Test Service Bot Responses' :
-                 'Test Language Model Responses'}
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Interactive Q&A</h2>
 
               {/* Chat Messages */}
               <div className="h-96 overflow-y-auto border border-gray-200 rounded-xl p-6 mb-6 bg-gray-50">
                 {currentMessages.length === 0 ? (
                   <div className="text-center text-gray-500 mt-8">
                     <div className="text-4xl mb-4">💬</div>
-                    <p className="text-lg mb-2">
-                      {currentTrack === "service" ? "Ask questions to your service bot" :
-                       currentTrack === "llm" ? "Ask questions to your language model" :
-                       "Ask questions about your data predictions"}
-                    </p>
-                    <p className="text-sm">
-                      {currentTrack === "service" ? '"I need help with my account" or "What are your return policies?"' :
-                       currentTrack === "llm" ? '"What do you think about hiring bootcamp grads?"' :
-                       '"Whom should I hire?" or "Who are the top candidates?"'}
-                    </p>
+                    <p className="text-lg mb-2">Ask questions about your data predictions</p>
+                    <p className="text-sm">Example: "Whom should I hire?" or "Who are the top candidates?"</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -835,11 +636,7 @@ const App = () => {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={
-                    currentTrack === "service" ? "Ask a question to your service bot..." :
-                    currentTrack === "llm" ? "Ask a question to your language model..." :
-                    "Ask a question about your predictions..."
-                  }
+                  placeholder="Ask a question about your predictions..."
                   className="flex-1 border border-gray-300 rounded-xl px-6 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
                   disabled={isProcessing}
                 />
