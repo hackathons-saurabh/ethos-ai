@@ -65,6 +65,20 @@ services:
       - ethos-network
     restart: unless-stopped
 
+  compliance-guardian:
+    build: ./mcp-servers/compliance-guardian
+    container_name: ethos-compliance-guardian
+    ports:
+      - "8006:8000"
+    environment:
+      - MCP_SERVER_NAME=compliance-guardian
+      - LOG_LEVEL=INFO
+    volumes:
+      - compliance-data:/app/data
+    networks:
+      - ethos-network
+    restart: unless-stopped
+
   # Orchestrator
   orchestrator:
     build: ./orchestrator/enrichmcp
@@ -80,6 +94,7 @@ services:
       - fairness-evaluator
       - compliance-logger
       - prediction-server
+      - compliance-guardian
     networks:
       - ethos-network
     restart: unless-stopped

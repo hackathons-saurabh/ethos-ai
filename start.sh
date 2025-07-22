@@ -17,7 +17,7 @@ sleep 10
 
 # Check service health
 echo "🔍 Checking service health..."
-services=("bias-detector:8001" "data-cleaner:8002" "fairness-evaluator:8003" "compliance-logger:8004" "prediction-server:8005" "orchestrator:8000" "backend:8080")
+services=("bias-detector:8001" "data-cleaner:8002" "fairness-evaluator:8003" "compliance-logger:8004" "compliance-guardian:8006" "prediction-server:8005" "orchestrator:8000" "backend:8080")
 
 for service in "${services[@]}"; do
     name="${service%%:*}"
